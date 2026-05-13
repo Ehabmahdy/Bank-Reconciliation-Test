@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bank Reconciliation Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F8FA;
+  --surface:#FFFFFF;
+  --surface2:#F1F3F7;
+  --border:#E2E6EE;
+  --border2:#C8CEDC;
+  --text:#1A1D23;
+  --muted:#6B7280;
+  --hint:#9CA3AF;
+  --navy:#0C1F3F;
+  --navy2:#1A3560;
+  --blue:#185FA5;
+  --blue-l:#E6F1FB;
+  --blue-t:#B5D4F4;
+  --green:#3B6D11;
+  --green-l:#EAF3DE;
+  --green-t:#C0DD97;
+  --red:#A32D2D;
+  --red-l:#FCEBEB;
+  --red-t:#F7C1C1;
+  --amber:#854F0B;
+  --amber-l:#FAEEDA;
+  --amber-t:#FAC775;
+  --teal:#0F6E56;
+  --teal-l:#E1F5EE;
+  --teal-t:#9FE1CB;
+  --gold:#B8860B;
+  --gold-l:#FEF9EC;
+  --r:10px;
+  --r2:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+.topbar{background:var(--navy);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--gold)}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.app-badge{background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;letter-spacing:.12em;padding:3px 9px;border-radius:4px;text-transform:uppercase}
+.app-title{color:#EBE5D0;font-size:15px;font-weight:500;letter-spacing:.01em}
+.topbar-meta{display:flex;gap:16px;align-items:center}
+.meta-field{display:flex;flex-direction:column;gap:2px}
+.meta-field label{font-size:10px;color:#7A8FA6;text-transform:uppercase;letter-spacing:.1em}
+.meta-field input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#EBE5D0;padding:4px 10px;font-size:12px;border-radius:5px;width:130px}
+.meta-field input:focus{outline:1px solid var(--gold);border-color:transparent}
+.meta-field input::placeholder{color:#4A5A72}
+.status-pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:.03em}
+.status-pill.ok{background:var(--green-l);color:var(--green)}
+.status-pill.bad{background:var(--red-l);color:var(--red)}
+.status-pill.pending{background:var(--amber-l);color:var(--amber)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 56px)}
+
+.sidebar{background:var(--navy2);padding:20px 16px;display:flex;flex-direction:column;gap:8px;border-right:1px solid rgba(255,255,255,.06)}
+.sidebar-section{margin-bottom:4px}
+.sidebar-label{font-size:10px;color:#7A8FA6;text-transform:uppercase;letter-spacing:.12em;padding:0 8px;margin-bottom:8px}
+.kpi-card{background:rgba(255,255,255,.05);border-radius:var(--r);padding:14px 14px 12px;border:1px solid rgba(255,255,255,.07);margin-bottom:6px}
+.kpi-card.highlight{background:rgba(184,134,11,.1);border-color:rgba(184,134,11,.25)}
+.kpi-label{font-size:11px;color:#7A8FA6;margin-bottom:6px;letter-spacing:.04em}
+.kpi-value{font-size:22px;font-weight:600;color:#EBE5D0;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpi-value.ok{color:#9FE1CB}
+.kpi-value.bad{color:#F09595}
+.kpi-sub{font-size:11px;color:#5A7080;margin-top:4px}
+
+.ring-wrap{display:flex;flex-direction:column;align-items:center;padding:16px 0 8px}
+.ring-svg{width:110px;height:110px}
+.ring-label{font-size:12px;color:#7A8FA6;margin-top:8px;text-align:center}
+.ring-pct{font-size:18px;font-weight:700;color:#EBE5D0}
+
+.divider{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+
+.sidebar-action{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#9CA3AF;font-size:13px;transition:background .15s,color .15s;border:none;background:none;width:100%;text-align:left}
+.sidebar-action:hover{background:rgba(255,255,255,.07);color:#EBE5D0}
+.sidebar-action i{font-size:16px}
+
+.workspace{padding:20px 24px;overflow-y:auto}
+
+.ws-top{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.metric-tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.metric-tile.t-blue::before{background:var(--blue)}
+.metric-tile.t-teal::before{background:var(--teal)}
+.metric-tile.t-green::before{background:var(--green)}
+.metric-tile.t-red::before{background:var(--red)}
+.metric-tile.t-amber::before{background:var(--amber)}
+.tile-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.tile-value{font-size:20px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tile-value.ok{color:var(--green)}
+.tile-value.bad{color:var(--red)}
+.tile-sub{font-size:11px;color:var(--hint);margin-top:3px}
+
+.panels-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.panel-head{padding:13px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.panel-head.book-head{background:var(--navy);border-bottom-color:rgba(255,255,255,.08)}
+.panel-head.bank-head{background:#042C53;border-bottom-color:rgba(255,255,255,.08)}
+.ph-left{display:flex;align-items:center;gap:10px}
+.ph-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.ph-icon.book{background:rgba(184,134,11,.2);color:var(--gold)}
+.ph-icon.bank{background:rgba(21,95,165,.3);color:#85B7EB}
+.ph-title{font-size:13px;font-weight:600;color:#EBE5D0;letter-spacing:.01em}
+.ph-sub{font-size:11px;color:#5A7080;margin-top:1px}
+.ph-badge{font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600}
+.ph-badge.book{background:rgba(184,134,11,.2);color:#FAC775}
+.ph-badge.bank{background:rgba(21,95,165,.25);color:#85B7EB}
+
+.input-zone{padding:12px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.input-zone textarea{width:100%;height:90px;border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:11.5px;font-family:'Courier New',monospace;resize:none;background:var(--surface);color:var(--text);line-height:1.6}
+.input-zone textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.hint-text{font-size:10.5px;color:var(--hint);margin-top:5px;font-family:'Courier New',monospace}
+.zone-actions{display:flex;gap:7px;margin-top:8px;align-items:center}
+.btn{cursor:pointer;border-radius:7px;font-size:12px;padding:6px 13px;font-weight:500;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.btn:hover{border-color:var(--border2);background:var(--surface2)}
+.btn.primary{background:var(--navy);color:#EBE5D0;border-color:var(--navy)}
+.btn.primary:hover{background:var(--navy2)}
+.btn.sm{padding:4px 10px;font-size:11px}
+.btn.danger{background:var(--red-l);color:var(--red);border-color:var(--red-t)}
+.btn.success{background:var(--green-l);color:var(--green);border-color:var(--green-t)}
+.opening-wrap{margin-left:auto;display:flex;align-items:center;gap:7px}
+.opening-wrap label{font-size:11px;color:var(--muted);white-space:nowrap}
+.opening-wrap input{width:110px;border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;font-family:'Courier New',monospace;background:var(--surface);color:var(--text)}
+
+.add-row{display:flex;gap:6px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;flex-wrap:wrap}
+.add-row input[type=date]{width:128px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11.5px;background:var(--surface);color:var(--text)}
+.add-row input[type=text]{flex:1;min-width:100px;border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11.5px;background:var(--surface);color:var(--text)}
+.add-row input[type=number]{width:100px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11.5px;font-family:'Courier New',monospace;background:var(--surface);color:var(--text)}
+.add-row input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(24,95,165,.1)}
+
+.txn-wrap{max-height:280px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+thead th{background:var(--surface2);padding:8px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;font-weight:600}
+th.r,td.r{text-align:right}
+th.c{text-align:center}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--surface2)}
+tbody td{padding:7px 10px;color:var(--text);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tbody td.mono{font-family:'Courier New',monospace;font-size:11.5px}
+.cr{color:var(--teal)}
+.dr{color:var(--red)}
+.matched-row{background:#F0FAF3 !important}
+.unmatched-row{background:#FFF8F8 !important}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.matched{background:var(--green-l);color:var(--green)}
+.badge.unmatched{background:var(--red-l);color:var(--red)}
+.badge.pending{background:var(--amber-l);color:var(--amber)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot.g{background:var(--green)}
+.dot.r{background:var(--red)}
+.dot.a{background:var(--amber)}
+
+.match-btn-cell button{padding:3px 9px;font-size:10.5px;border-radius:5px;cursor:pointer;border:1px solid;font-weight:600;transition:all .12s}
+.mbtn-match{background:var(--blue-l);color:var(--blue);border-color:var(--blue-t)}
+.mbtn-match:hover{background:var(--blue-t)}
+.mbtn-matched{background:var(--green-l);color:var(--green);border-color:var(--green-t)}
+.mbtn-matched:hover{background:var(--red-l);color:var(--red);border-color:var(--red-t)}
+.del-btn{padding:2px 7px;font-size:10.5px;border-radius:5px;cursor:pointer;background:transparent;color:var(--hint);border:1px solid transparent}
+.del-btn:hover{background:var(--red-l);color:var(--red);border-color:var(--red-t)}
+
+.tfoot-row{display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);font-size:11.5px;font-family:'Courier New',monospace;border-top:1px solid var(--border);color:var(--muted)}
+.tfoot-row strong{color:var(--text)}
+
+.unrec-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:16px}
+.unrec-head{padding:12px 16px;background:#3D0F0F;display:flex;align-items:center;justify-content:space-between}
+.unrec-head h3{font-size:13px;font-weight:600;color:#FAD5D5;letter-spacing:.02em}
+.unrec-count{background:rgba(242,95,95,.2);color:#F09595;font-size:11px;padding:3px 10px;border-radius:12px;font-weight:700}
+.unrec-body{display:grid;grid-template-columns:1fr 1fr}
+.unrec-col{padding:14px}
+.unrec-col:first-child{border-right:1px solid var(--border)}
+.unrec-col-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.unrec-item{display:flex;align-items:flex-start;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:5px;border:1px solid var(--red-t);background:var(--red-l)}
+.unrec-item-left .desc{font-size:12px;color:var(--text);font-weight:500}
+.unrec-item-left .date{font-size:10.5px;color:var(--hint);margin-top:2px;font-family:'Courier New',monospace}
+.unrec-item-amt{font-size:13px;font-weight:700;color:var(--red);font-family:'Courier New',monospace;white-space:nowrap;margin-left:8px}
+.unrec-empty{font-size:12px;color:var(--hint);text-align:center;padding:16px;font-style:italic}
+.unrec-total{display:flex;justify-content:space-between;font-size:12px;font-family:'Courier New',monospace;padding:8px 10px;background:var(--surface2);border-radius:6px;margin-top:6px;color:var(--muted)}
+.unrec-total strong{color:var(--red)}
+
+.recon-stmt{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:16px}
+.recon-head{padding:12px 16px;background:var(--navy);display:flex;align-items:center;justify-content:space-between}
+.recon-head h3{font-size:13px;font-weight:600;color:#EBE5D0;letter-spacing:.02em}
+.recon-body2{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.recon-col{padding:16px}
+.recon-col:first-child{border-right:1px solid var(--border)}
+.recon-col-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.recon-line{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px dashed var(--border)}
+.recon-line:last-child{border-bottom:none}
+.rl-desc{color:var(--muted)}
+.rl-val{font-family:'Courier New',monospace;font-weight:600;color:var(--text)}
+.rl-val.pos{color:var(--teal)}
+.rl-val.neg{color:var(--red)}
+.recon-total-row{display:flex;justify-content:space-between;padding:9px 12px;border-radius:8px;margin-top:10px;font-size:13px;font-weight:700;font-family:'Courier New',monospace}
+.recon-total-row.ok{background:var(--green-l);color:var(--green)}
+.recon-total-row.bad{background:var(--red-l);color:var(--red)}
+
+.diff-banner{padding:12px 16px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);font-size:13px;font-weight:600}
+.diff-banner.ok{background:var(--green-l);color:var(--green)}
+.diff-banner.bad{background:var(--red-l);color:var(--red)}
+.diff-banner i{font-size:18px}
+
+.action-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+
+.empty-state{padding:28px;text-align:center;color:var(--hint);font-size:12px;font-style:italic}
+
+@media print{.topbar .meta-field input,.sidebar,.input-zone,.add-row,.action-bar,.match-btn-cell,.del-btn{display:none!important}.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="app-badge">Audit</span>
+    <span class="app-title">Bank Reconciliation Dashboard</span>
+  </div>
+  <div class="topbar-meta">
+    <div class="meta-field"><label>Entity</label><input type="text" id="m-entity" placeholder="Company name"></div>
+    <div class="meta-field"><label>Bank / Account</label><input type="text" id="m-account" placeholder="Bank & account"></div>
+    <div class="meta-field"><label>Period</label><input type="month" id="m-period"></div>
+    <div class="meta-field"><label>Preparer</label><input type="text" id="m-preparer" placeholder="Name"></div>
+    <div id="topbar-status" class="status-pill pending">Pending</div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Reconciliation Status</div>
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+          <circle id="ring-track" cx="55" cy="55" r="44" fill="none" stroke="#3B6D11" stroke-width="10"
+            stroke-dasharray="0 276.46" stroke-linecap="round" transform="rotate(-90 55 55)"/>
+          <text id="ring-pct-text" x="55" y="51" text-anchor="middle" fill="#EBE5D0" font-size="18" font-weight="700" font-family="sans-serif">0%</text>
+          <text x="55" y="67" text-anchor="middle" fill="#5A7080" font-size="10" font-family="sans-serif">matched</text>
+        </svg>
+        <div class="ring-label" id="ring-sub-label">0 of 0 items matched</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Balances</div>
+      <div class="kpi-card">
+        <div class="kpi-label">Book closing balance</div>
+        <div class="kpi-value" id="sk-book">0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Bank closing balance</div>
+        <div class="kpi-value" id="sk-bank">0.00</div>
+      </div>
+      <div class="kpi-card highlight">
+        <div class="kpi-label">Unexplained difference</div>
+        <div class="kpi-value ok" id="sk-diff">0.00</div>
+        <div class="kpi-sub" id="sk-diff-sub">Reconciled</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Actions</div>
+      <button class="sidebar-action" onclick="matchAll()"><i class="ti ti-wand"></i> Auto-match by amount</button>
+      <button class="sidebar-action" onclick="clearAllMatches()"><i class="ti ti-refresh"></i> Reset all matches</button>
+      <button class="sidebar-action" onclick="exportCSV()"><i class="ti ti-download"></i> Export unreconciled CSV</button>
+      <button class="sidebar-action" onclick="window.print()"><i class="ti ti-printer"></i> Print / PDF</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+
+    <div class="ws-top">
+      <div class="metric-tile t-blue">
+        <div class="tile-label">Book transactions</div>
+        <div class="tile-value" id="t-book-count">0</div>
+        <div class="tile-sub" id="t-book-net">Net: 0.00</div>
+      </div>
+      <div class="metric-tile t-teal">
+        <div class="tile-label">Bank transactions</div>
+        <div class="tile-value" id="t-bank-count">0</div>
+        <div class="tile-sub" id="t-bank-net">Net: 0.00</div>
+      </div>
+      <div class="metric-tile t-green">
+        <div class="tile-label">Matched items</div>
+        <div class="tile-value ok" id="t-matched">0</div>
+        <div class="tile-sub">Reconciled pairs</div>
+      </div>
+      <div class="metric-tile t-red">
+        <div class="tile-label">Unreconciled items</div>
+        <div class="tile-value bad" id="t-unmatched">0</div>
+        <div class="tile-sub">Require attention</div>
+      </div>
+    </div>
+
+    <div class="panels-row">
+
+      <!-- BOOK PANEL -->
+      <div class="panel">
+        <div class="panel-head book-head">
+          <div class="ph-left">
+            <div class="ph-icon book"><i class="ti ti-book-2" aria-hidden="true"></i></div>
+            <div>
+              <div class="ph-title">Book / GL Transactions</div>
+              <div class="ph-sub">General ledger entries</div>
+            </div>
+          </div>
+          <span class="ph-badge book" id="book-badge">0 items</span>
+        </div>
+        <div class="input-zone">
+          <textarea id="book-paste" placeholder="Paste from Excel / system export (Tab or comma separated):&#10;Date    Description    Debit    Credit&#10;2024-01-03    Supplier payment    15000    &#10;2024-01-07    Customer receipt        42000"></textarea>
+          <div class="hint-text">Columns: Date | Description | Debit | Credit</div>
+          <div class="zone-actions">
+            <button class="btn primary" onclick="parsePaste('book')"><i class="ti ti-upload" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Import pasted data</button>
+            <button class="btn" onclick="clearTable('book')">Clear all</button>
+            <div class="opening-wrap"><label>Opening bal.</label><input type="number" id="book-opening" value="0" oninput="recalc()"></div>
+          </div>
+        </div>
+        <div class="add-row">
+          <input type="date" id="book-date">
+          <input type="text" id="book-desc" placeholder="Description">
+          <input type="number" id="book-debit" placeholder="Debit" step="0.01">
+          <input type="number" id="book-credit" placeholder="Credit" step="0.01">
+          <button class="btn primary" onclick="addRow('book')"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Add</button>
+        </div>
+        <div class="txn-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:30px">#</th>
+              <th style="width:90px">Date</th>
+              <th>Description</th>
+              <th class="r" style="width:80px">Debit</th>
+              <th class="r" style="width:80px">Credit</th>
+              <th class="c" style="width:85px">Status</th>
+              <th style="width:80px"></th>
+            </tr></thead>
+            <tbody id="book-tbody"></tbody>
+          </table>
+          <div id="book-empty" class="empty-state">No book transactions yet — paste or add rows above</div>
+        </div>
+        <div class="tfoot-row">
+          <span>Debits: <strong id="book-td">0.00</strong></span>
+          <span>Credits: <strong id="book-tc">0.00</strong></span>
+          <span>Net: <strong id="book-tn">0.00</strong></span>
+        </div>
+      </div>
+
+      <!-- BANK PANEL -->
+      <div class="panel">
+        <div class="panel-head bank-head">
+          <div class="ph-left">
+            <div class="ph-icon bank"><i class="ti ti-building-bank" aria-hidden="true"></i></div>
+            <div>
+              <div class="ph-title">Bank Statement Transactions</div>
+              <div class="ph-sub">Official bank statement</div>
+            </div>
+          </div>
+          <span class="ph-badge bank" id="bank-badge">0 items</span>
+        </div>
+        <div class="input-zone">
+          <textarea id="bank-paste" placeholder="Paste bank statement (Tab or comma separated):&#10;Date    Description    Debit    Credit&#10;2024-01-03    CHQ 00123    15000    &#10;2024-01-10    Credit transfer        42000"></textarea>
+          <div class="hint-text">Columns: Date | Description | Debit | Credit</div>
+          <div class="zone-actions">
+            <button class="btn primary" onclick="parsePaste('bank')"><i class="ti ti-upload" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Import pasted data</button>
+            <button class="btn" onclick="clearTable('bank')">Clear all</button>
+            <div class="opening-wrap"><label>Opening bal.</label><input type="number" id="bank-opening" value="0" oninput="recalc()"></div>
+          </div>
+        </div>
+        <div class="add-row">
+          <input type="date" id="bank-date">
+          <input type="text" id="bank-desc" placeholder="Description">
+          <input type="number" id="bank-debit" placeholder="Debit" step="0.01">
+          <input type="number" id="bank-credit" placeholder="Credit" step="0.01">
+          <button class="btn primary" onclick="addRow('bank')"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px"></i> Add</button>
+        </div>
+        <div class="txn-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:30px">#</th>
+              <th style="width:90px">Date</th>
+              <th>Description</th>
+              <th class="r" style="width:80px">Debit</th>
+              <th class="r" style="width:80px">Credit</th>
+              <th class="c" style="width:85px">Status</th>
+              <th style="width:80px"></th>
+            </tr></thead>
+            <tbody id="bank-tbody"></tbody>
+          </table>
+          <div id="bank-empty" class="empty-state">No bank transactions yet — paste or add rows above</div>
+        </div>
+        <div class="tfoot-row">
+          <span>Debits: <strong id="bank-td">0.00</strong></span>
+          <span>Credits: <strong id="bank-tc">0.00</strong></span>
+          <span>Net: <strong id="bank-tn">0.00</strong></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- UNRECONCILED ITEMS -->
+    <div class="unrec-section">
+      <div class="unrec-head">
+        <h3><i class="ti ti-alert-triangle" style="font-size:15px;vertical-align:-2px;margin-right:7px"></i>Unreconciled Items — Require Investigation or Journal Entry</h3>
+        <span class="unrec-count" id="unrec-count-badge">0 items</span>
+      </div>
+      <div class="unrec-body">
+        <div class="unrec-col">
+          <div class="unrec-col-title"><span class="dot a"></span>In Books — Not in Bank</div>
+          <div id="unrec-book-list"></div>
+          <div class="unrec-total"><span>Total unmatched (books)</span><strong id="unrec-book-tot">0.00</strong></div>
+        </div>
+        <div class="unrec-col">
+          <div class="unrec-col-title"><span class="dot r"></span>In Bank — Not in Books</div>
+          <div id="unrec-bank-list"></div>
+          <div class="unrec-total"><span>Total unmatched (bank)</span><strong id="unrec-bank-tot">0.00</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORMAL RECONCILIATION STATEMENT -->
+    <div class="recon-stmt">
+      <div class="recon-head">
+        <h3><i class="ti ti-report-analytics" style="font-size:15px;vertical-align:-2px;margin-right:7px"></i>Formal Reconciliation Statement</h3>
+        <span style="font-size:11px;color:#7A8FA6;font-family:'Courier New',monospace" id="recon-date-label"></span>
+      </div>
+      <div class="recon-body2">
+        <div class="recon-col">
+          <div class="recon-col-title">Bank balance → adjusted</div>
+          <div class="recon-line"><span class="rl-desc">Bank statement closing balance</span><span class="rl-val" id="r-bank-close">0.00</span></div>
+          <div class="recon-line"><span class="rl-desc">Add: Deposits in transit (books not bank)</span><span class="rl-val pos" id="r-dit">+ 0.00</span></div>
+          <div class="recon-line"><span class="rl-desc">Less: Outstanding cheques (books not bank)</span><span class="rl-val neg" id="r-oc">− 0.00</span></div>
+          <div class="recon-total-row ok" id="r-bank-total-row">
+            <span>Adjusted bank balance</span><span id="r-adj-bank">0.00</span>
+          </div>
+        </div>
+        <div class="recon-col">
+          <div class="recon-col-title">Book balance → adjusted</div>
+          <div class="recon-line"><span class="rl-desc">Book closing balance</span><span class="rl-val" id="r-book-close">0.00</span></div>
+          <div class="recon-line"><span class="rl-desc">Add: Bank credits not in books</span><span class="rl-val pos" id="r-bank-credits">+ 0.00</span></div>
+          <div class="recon-line"><span class="rl-desc">Less: Bank charges/debits not in books</span><span class="rl-val neg" id="r-bank-charges">− 0.00</span></div>
+          <div class="recon-total-row ok" id="r-book-total-row">
+            <span>Adjusted book balance</span><span id="r-adj-book">0.00</span>
+          </div>
+        </div>
+      </div>
+      <div class="diff-banner ok" id="diff-banner">
+        <i class="ti ti-circle-check"></i>
+        <span id="diff-banner-text">Reconciled — adjusted balances agree. No unexplained difference.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const S={book:[],bank:[],nb:1,nk:1};
+const fmt=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function parsePaste(side){
+  const raw=document.getElementById(side+'-paste').value.trim();
+  if(!raw)return;
+  const lines=raw.split('\n');let added=0;
+  lines.forEach(line=>{
+    const cols=line.split(/\t|,|\|/).map(c=>c.trim());
+    if(cols.length<2)return;
+    const date=cols[0]||'',desc=cols[1]||'';
+    const debit=parseFloat(cols[2])||0,credit=parseFloat(cols[3])||0;
+    if(!desc&&!debit&&!credit)return;
+    if(date.toLowerCase().includes('date'))return;
+    const id=side==='book'?S.nb++:S.nk++;
+    S[side].push({id,date,desc,debit,credit,matched:false,matchId:null});added++;
+  });
+  document.getElementById(side+'-paste').value='';
+  renderTable(side);recalc();
+  if(!added)alert('No valid rows found. Expected: Date | Description | Debit | Credit');
+}
+
+function addRow(side){
+  const date=document.getElementById(side+'-date').value;
+  const desc=document.getElementById(side+'-desc').value.trim();
+  const debit=parseFloat(document.getElementById(side+'-debit').value)||0;
+  const credit=parseFloat(document.getElementById(side+'-credit').value)||0;
+  if(!desc&&!debit&&!credit)return;
+  const id=side==='book'?S.nb++:S.nk++;
+  S[side].push({id,date,desc,debit,credit,matched:false,matchId:null});
+  document.getElementById(side+'-date').value='';
+  document.getElementById(side+'-desc').value='';
+  document.getElementById(side+'-debit').value='';
+  document.getElementById(side+'-credit').value='';
+  renderTable(side);recalc();
+}
+
+function deleteRow(side,id){
+  const idx=S[side].findIndex(r=>r.id===id);if(idx===-1)return;
+  const row=S[side][idx];
+  if(row.matchId!=null){
+    const o=side==='book'?'bank':'book';
+    const or=S[o].find(r=>r.id===row.matchId);
+    if(or){or.matched=false;or.matchId=null;}renderTable(o);
+  }
+  S[side].splice(idx,1);renderTable(side);recalc();
+}
+
+function toggleMatch(side,id){
+  const row=S[side].find(r=>r.id===id);if(!row)return;
+  if(row.matched){
+    const o=side==='book'?'bank':'book';
+    const or=S[o].find(r=>r.id===row.matchId);
+    if(or){or.matched=false;or.matchId=null;renderTable(o);}
+    row.matched=false;row.matchId=null;
+  }else{
+    const o=side==='book'?'bank':'book';
+    const amt=row.debit>0?row.debit:row.credit;
+    const best=S[o].find(c=>!c.matched&&Math.abs((c.debit>0?c.debit:c.credit)-amt)<0.01);
+    if(best){row.matched=true;row.matchId=best.id;best.matched=true;best.matchId=row.id;renderTable(o);}
+    else{row.matched=true;row.matchId=-1;}
+  }
+  renderTable(side);recalc();
+}
+
+function renderTable(side){
+  const tbody=document.getElementById(side+'-tbody');
+  const empty=document.getElementById(side+'-empty');
+  const rows=S[side];
+  tbody.innerHTML='';
+  empty.style.display=rows.length?'none':'block';
+  let td=0,tc=0;
+  rows.forEach((r,i)=>{
+    td+=r.debit;tc+=r.credit;
+    const tr=document.createElement('tr');
+    tr.className=r.matched?'matched-row':'unmatched-row';
+    const mLabel=r.matched?(r.matchId===-1?'Flagged':'Matched'):'Match';
+    const mClass=r.matched?'mbtn-matched':'mbtn-match';
+    tr.innerHTML=`<td style="color:var(--hint);font-size:11px">${i+1}</td>
+      <td class="mono">${r.date||'—'}</td>
+      <td title="${r.desc||''}" style="font-size:12px">${r.desc||'—'}</td>
+      <td class="r mono dr">${r.debit>0?fmt(r.debit):''}</td>
+      <td class="r mono cr">${r.credit>0?fmt(r.credit):''}</td>
+      <td style="text-align:center"><span class="badge ${r.matched?'matched':'pending'}"><span class="dot ${r.matched?'g':'a'}"></span>${r.matched?'Matched':'Pending'}</span></td>
+      <td class="match-btn-cell" style="white-space:nowrap">
+        <button class="${mClass}" onclick="toggleMatch('${side}',${r.id})">${mLabel}</button>
+        <button class="del-btn" onclick="deleteRow('${side}',${r.id})">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById(side+'-badge').textContent=rows.length+' item'+(rows.length!==1?'s':'');
+  document.getElementById(side+'-td').textContent=fmt(td);
+  document.getElementById(side+'-tc').textContent=fmt(tc);
+  document.getElementById(side+'-tn').textContent=fmt(tc-td);
+}
+
+function recalc(){
+  const bo=parseFloat(document.getElementById('book-opening').value)||0;
+  const bko=parseFloat(document.getElementById('bank-opening').value)||0;
+  let bd=0,bc=0;S.book.forEach(r=>{bd+=r.debit;bc+=r.credit;});
+  const bookClose=bo+bc-bd;
+  let kd=0,kc=0;S.bank.forEach(r=>{kd+=r.debit;kc+=r.credit;});
+  const bankClose=bko+kc-kd;
+
+  const unmBook=S.book.filter(r=>!r.matched);
+  const unmBank=S.bank.filter(r=>!r.matched);
+  let ditC=0,ditD=0;unmBook.forEach(r=>{ditC+=r.credit;ditD+=r.debit;});
+  let bkC=0,bkD=0;unmBank.forEach(r=>{bkC+=r.credit;bkD+=r.debit;});
+
+  const adjBank=bankClose+ditC-ditD;
+  const adjBook=bookClose+bkC-bkD;
+  const diff=adjBook-adjBank;
+  const reconciled=Math.abs(diff)<0.01;
+
+  document.getElementById('sk-book').textContent=fmt(bookClose);
+  document.getElementById('sk-bank').textContent=fmt(bankClose);
+  const skDiff=document.getElementById('sk-diff');
+  skDiff.textContent=fmt(Math.abs(diff));
+  skDiff.className='kpi-value '+(reconciled?'ok':'bad');
+  document.getElementById('sk-diff-sub').textContent=reconciled?'Reconciled':'Not reconciled';
+
+  const totalItems=S.book.length+S.bank.length;
+  const matchedItems=S.book.filter(r=>r.matched).length+S.bank.filter(r=>r.matched).length;
+  const pct=totalItems>0?Math.round((matchedItems/totalItems)*100):0;
+  const circ=2*Math.PI*44;
+  const dash=circ*(pct/100);
+  const ring=document.getElementById('ring-track');
+  ring.setAttribute('stroke-dasharray',`${dash.toFixed(2)} ${circ.toFixed(2)}`);
+  ring.setAttribute('stroke',reconciled&&pct===100?'#3B6D11':pct>60?'#0F6E56':'#854F0B');
+  document.getElementById('ring-pct-text').textContent=pct+'%';
+  document.getElementById('ring-sub-label').textContent=matchedItems+' of '+totalItems+' items matched';
+
+  document.getElementById('t-book-count').textContent=S.book.length;
+  document.getElementById('t-bank-count').textContent=S.bank.length;
+  document.getElementById('t-matched').textContent=S.book.filter(r=>r.matched).length;
+  document.getElementById('t-unmatched').textContent=unmBook.length+unmBank.length;
+
+  const bookNet=bc-bd,bankNet=kc-kd;
+  document.getElementById('t-book-net').textContent='Net: '+fmt(bookNet);
+  document.getElementById('t-bank-net').textContent='Net: '+fmt(bankNet);
+
+  renderUnreconciled(unmBook,unmBank);
+
+  document.getElementById('r-bank-close').textContent=fmt(bankClose);
+  document.getElementById('r-dit').textContent='+ '+fmt(ditC);
+  document.getElementById('r-oc').textContent='− '+fmt(ditD);
+  document.getElementById('r-adj-bank').textContent=fmt(adjBank);
+  document.getElementById('r-book-close').textContent=fmt(bookClose);
+  document.getElementById('r-bank-credits').textContent='+ '+fmt(bkC);
+  document.getElementById('r-bank-charges').textContent='− '+fmt(bkD);
+  document.getElementById('r-adj-book').textContent=fmt(adjBook);
+
+  const rbt=document.getElementById('r-bank-total-row');
+  const rbk=document.getElementById('r-book-total-row');
+  rbt.className=rbk.className='recon-total-row '+(reconciled?'ok':'bad');
+
+  const banner=document.getElementById('diff-banner');
+  const bannerTxt=document.getElementById('diff-banner-text');
+  const pill=document.getElementById('topbar-status');
+  if(reconciled){
+    banner.className='diff-banner ok';
+    banner.querySelector('i').className='ti ti-circle-check';
+    bannerTxt.textContent='Reconciled — adjusted balances agree. No unexplained difference.';
+    pill.className='status-pill ok';pill.textContent='Reconciled';
+  }else{
+    banner.className='diff-banner bad';
+    banner.querySelector('i').className='ti ti-alert-circle';
+    bannerTxt.textContent='Not reconciled — unexplained difference of '+fmt(Math.abs(diff))+'. Review unmatched items below.';
+    pill.className='status-pill bad';pill.textContent='Difference: '+fmt(Math.abs(diff));
+  }
+  if(totalItems===0){pill.className='status-pill pending';pill.textContent='Pending';}
+
+  const period=document.getElementById('m-period').value;
+  document.getElementById('recon-date-label').textContent=period?'Period: '+period:'';
+}
+
+function renderUnreconciled(bk,bn){
+  const bl=document.getElementById('unrec-book-list');
+  const bkl=document.getElementById('unrec-bank-list');
+  bl.innerHTML='';bkl.innerHTML='';
+  let bt=0,bnt=0;
+  if(bk.length===0){bl.innerHTML='<div class="unrec-empty"><i class="ti ti-circle-check" style="color:var(--teal)"></i> All book items matched</div>';}
+  else{bk.forEach(r=>{const a=r.debit>0?r.debit:r.credit;bt+=a;bl.innerHTML+=`<div class="unrec-item"><div class="unrec-item-left"><div class="desc">${r.desc||'No description'}</div><div class="date">${r.date||'No date'} &nbsp;·&nbsp; ${r.debit>0?'Debit':'Credit'}</div></div><div class="unrec-item-amt">${fmt(a)}</div></div>`;});}
+  document.getElementById('unrec-book-tot').textContent=fmt(bt);
+
+  if(bn.length===0){bkl.innerHTML='<div class="unrec-empty"><i class="ti ti-circle-check" style="color:var(--teal)"></i> All bank items matched</div>';}
+  else{bn.forEach(r=>{const a=r.debit>0?r.debit:r.credit;bnt+=a;bkl.innerHTML+=`<div class="unrec-item"><div class="unrec-item-left"><div class="desc">${r.desc||'No description'}</div><div class="date">${r.date||'No date'} &nbsp;·&nbsp; ${r.debit>0?'Debit':'Credit'}</div></div><div class="unrec-item-amt">${fmt(a)}</div></div>`;});}
+  document.getElementById('unrec-bank-tot').textContent=fmt(bnt);
+
+  const tot=bk.length+bn.length;
+  document.getElementById('unrec-count-badge').textContent=tot+' item'+(tot!==1?'s':'');
+}
+
+function clearTable(side){
+  if(!confirm('Clear all '+side+' transactions?'))return;
+  S[side]=[];if(side==='book')S.nb=1;else S.nk=1;
+  renderTable(side);recalc();
+}
+
+function matchAll(){
+  S.book.forEach(b=>{
+    if(b.matched)return;
+    const amt=b.debit>0?b.debit:b.credit;
+    const m=S.bank.find(k=>!k.matched&&Math.abs((k.debit>0?k.debit:k.credit)-amt)<0.01);
+    if(m){b.matched=true;b.matchId=m.id;m.matched=true;m.matchId=b.id;}
+  });
+  renderTable('book');renderTable('bank');recalc();
+}
+
+function clearAllMatches(){
+  S.book.forEach(r=>{r.matched=false;r.matchId=null;});
+  S.bank.forEach(r=>{r.matched=false;r.matchId=null;});
+  renderTable('book');renderTable('bank');recalc();
+}
+
+function exportCSV(){
+  const ub=S.book.filter(r=>!r.matched);
+  const ukb=S.bank.filter(r=>!r.matched);
+  let csv='Source,Date,Description,Debit,Credit\n';
+  ub.forEach(r=>csv+=`Book,${r.date},"${r.desc}",${r.debit},${r.credit}\n`);
+  ukb.forEach(r=>csv+=`Bank,${r.date},"${r.desc}",${r.debit},${r.credit}\n`);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='unreconciled_items.csv';a.click();
+}
+
+renderTable('book');renderTable('bank');recalc();
+</script>
+</body>
+</html>
